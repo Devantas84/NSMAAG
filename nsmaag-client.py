@@ -193,10 +193,20 @@ while EDIT_DB == True:
 config = configparser.ConfigParser()
 config.read(client_config)
 
+# Get Server IP
 serverIP = config.get('SERVER', 'IP Address')
+
+# Get Log Path
 logs = config.get('LOGS', 'Log Path')
 logPath = Path(logs)
 
+# Get rotating info
+rotate = config.get('LOGS', 'Rotating')
+if rotate.lower() == 'y':
+    rotateTime = config.getint('LOGS', 'Rotate Time')
+    # Set sleep time based on rotate time
+    sleepTime = (rotateTime * 60) - 30
+    
 #------------------------------------------------------------------------
 # Send server config
 #------------------------------------------------------------------------
