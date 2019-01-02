@@ -35,7 +35,7 @@ def Client(filePath):
     
     # Get User Input
     serverIP = input("Server IP Address: ")
-    
+        
     print("\n"
           "Please supply the full path to the log files as shown in the following examples."
           "\n  Windows: C:/path/to/log/files/"
@@ -43,6 +43,17 @@ def Client(filePath):
           "\n")
     
     logPath = input("Full path to log files: ")
+    
+    print("\n"
+          "Do the logs rotate? (i.e. The logs reset after a set period of time)")
+    rotate = input("[Y/N] > ")
+    
+    if rotate.lower() == 'y':
+        client.set('LOGS', 'Rotating', rotate)
+        rotateTime = input("How often, in minutes, do they rotate? ")
+        client.set("LOGS", 'Rotate Time', rotateTime)
+    else:
+        client.set('LOGS', 'Rotating', rotate)
     
     # Set user supplied values
     client.set('SERVER', 'IP Address', serverIP)
