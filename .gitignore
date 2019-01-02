@@ -1,0 +1,4 @@
+databases/*
+config/*
+__pycache__/*
+
