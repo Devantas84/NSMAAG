@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 #====================================================================================
 #
-#         FILE: Client.py
+#         FILE: nsmaag-client.py
 #
-#        USAGE: ./Client.py
+#        USAGE: ./nsmaag-client.py
 #
 #  DESCRIPTION: This is the main client side program for NSM At A Glance.
 #
 #      OPTIONS: ---
-# REQUIREMENTS: ---
+# REQUIREMENTS: schedule, art, prettytable
 #         BUGS: ---
 #        NOTES: ---
 #       AUTHOR: Sean Smith (Student), seasmit2@uat.edu
@@ -109,6 +109,104 @@ def Reset_DB_Count():
     
     db_cur.close()
     db.close()
+    
+#------------------------------------------------------------------------
+# Function to search when using rotating logs
+#------------------------------------------------------------------------
+def Search_Rotating():
+    # Connect to Database
+    db = sqlite3.connect(str(health_db))
+    db_cur = db.cursor()
+    
+    # Select Data from Database
+    db_cur.execute("SELECT * FROM health")
+    
+    # Itterate through selections
+    for row in db_cur.fetchall():
+        sign = row[0]
+        searchTerm = row[1]
+        goodCount = row[2]
+        fairCount = row[3]
+        count = row[4]
+        
+        regex = re.compile(searchTerm)
+        
+        for file in logPath.iterdir():
+            if file.suffix == ".log":
+                print("Now searching for " + searchTerm + " in " + str(file))
+                with open(file, 'r') as log:
+                    lines = log.readlines()
+                    for line in lines:
+                        match = regex.search(line)
+                        if match:
+                            count += 1
+            else:
+                pass
+            
+            db_cur.execute("UPDATE health SET count = ? WHERE sign = ?", (count, sign))
+            db.commit()
+        
+        if count < goodCount:
+            health = "GOOD"
+        elif count < fairCount:
+            health = "FAIR"
+        elif count > fairCount:
+            health = "BAD"
+        
+        db_cur.execute("UPDATE health SET health = ? WHERE sign = ?", (health, sign))
+        db.commit
+        
+        db_cur.close()
+        db.close()
+
+#------------------------------------------------------------------------
+# Function to search when not using rotating logs
+#------------------------------------------------------------------------
+def Search_NotRotating():
+    # Connect to Database
+    db = sqlite3.connect(str(health_db))
+    db_cur = db.cursor()
+    
+    # Select Data from Database
+    db_cur.execute("SELECT * FROM health")
+    
+    # Itterate through selections
+    for row in db_cur.fetchall():
+        sign = row[0]
+        searchTerm = row[1]
+        goodCount = row[2]
+        fairCount = row[3]
+        count = 0
+        
+        regex = re.compile(searchTerm)
+        
+        for file in logPath.iterdir():
+            if file.suffix == ".log":
+                print("Now searching for " + searchTerm + " in " + str(file))
+                with open(file, 'r') as log:
+                    lines = log.readlines()
+                    for line in lines:
+                        match = regex.search(line)
+                        if match:
+                            count += 1
+            else:
+                pass
+            
+            db_cur.execute("UPDATE health SET count = ? WHERE sign = ?", (count, sign))
+            db.commit()
+        
+        if count < goodCount:
+            health = "GOOD"
+        elif count < fairCount:
+            health = "FAIR"
+        elif count > fairCount:
+            health = "BAD"
+        
+        db_cur.execute("UPDATE health SET health = ? WHERE sign = ?", (health, sign))
+        db.commit
+        
+        db_cur.close()
+        db.close()
 
 #------------------------------------------------------------------------
 # Check for database and create if it doesnt exist
@@ -223,7 +321,7 @@ print("# Server Config sent!")
 #------------------------------------------------------------------------
 # Set DB count reset schedule
 #------------------------------------------------------------------------
-schedule.every().day.at("8:30").do(Reset_DB_Count)
+schedule.every().day.at("24:59").do(Reset_DB_Count)
 
 #------------------------------------------------------------------------
 # Start Main Program Loop
@@ -233,47 +331,15 @@ try:
         # Reset the DB at scheduled time
         schedule.run_pending()
         
-        # Connect to Database
+        # Search based on rotating or non-rotating logs
+        if rotate.lower() == 'y':
+            Search_Rotating()
+        elif rotate.lower() == 'n':
+            Search_NotRotating()
+
+        # Start testing area
         db = sqlite3.connect(str(health_db))
         db_cur = db.cursor()
-        
-        # Select Data from Database
-        db_cur.execute("SELECT * FROM health")
-        
-        # Itterate through selections
-        for row in db_cur.fetchall():
-            sign = row[0]
-            searchTerm = row[1]
-            goodCount = row[2]
-            fairCount = row[3]
-            count = row[4]
-            
-            regex = re.compile(searchTerm)
-            
-            for file in logPath.iterdir():
-                if file.suffix == ".log":
-                    print("Now searching for " + searchTerm + " in " + str(file))
-                    with open(file, 'r') as log:
-                        lines = log.readlines()
-                        for line in lines:
-                            match = regex.search(line)
-                            if match:
-                                count += 1
-                else:
-                    pass
-                
-                db_cur.execute("UPDATE health SET count = ? WHERE sign = ?", (count, sign))
-                db.commit()
-            
-            if count < goodCount:
-                health = "GOOD"
-            elif count < fairCount:
-                health = "FAIR"
-            elif count > fairCount:
-                health = "BAD"
-            
-            db_cur.execute("UPDATE health SET health = ? WHERE sign = ?", (health, sign))
-            db.commit
         
         db_cur.execute("SELECT * FROM health")
         db_contents = from_db_cursor(db_cur)
@@ -281,14 +347,17 @@ try:
         db_cur.close()
         db.close()
         
-        # TESTING AREA
         print(db_contents)
+        # END TESTING AREA
         
         # Send Database to LED board
         Send_DB(serverIP, port)
         
         # Sleep
-        time.sleep(60)
+        if rotate.lower() == 'y':
+            time.sleep(rotateTime)
+        elif rotate.lower() == 'n':
+            time.sleep(600)
 
 except KeyboardInterrupt:
     tprint("Thank you for using", font='Small Slant')
