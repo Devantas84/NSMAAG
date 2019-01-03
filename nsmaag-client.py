@@ -128,7 +128,8 @@ def Search_Rotating():
         goodCount = row[2]
         fairCount = row[3]
         count = row[4]
-        
+        health = ""
+
         regex = re.compile(searchTerm)
         
         for file in logPath.iterdir():
@@ -156,8 +157,8 @@ def Search_Rotating():
         db_cur.execute("UPDATE health SET health = ? WHERE sign = ?", (health, sign))
         db.commit
         
-        db_cur.close()
-        db.close()
+    db_cur.close()
+    db.close()
 
 #------------------------------------------------------------------------
 # Function to search when not using rotating logs
@@ -177,7 +178,8 @@ def Search_NotRotating():
         goodCount = row[2]
         fairCount = row[3]
         count = 0
-        
+        health = ""
+
         regex = re.compile(searchTerm)
         
         for file in logPath.iterdir():
@@ -205,8 +207,8 @@ def Search_NotRotating():
         db_cur.execute("UPDATE health SET health = ? WHERE sign = ?", (health, sign))
         db.commit
         
-        db_cur.close()
-        db.close()
+    db_cur.close()
+    db.close()
 
 #------------------------------------------------------------------------
 # Check for database and create if it doesnt exist
@@ -321,7 +323,7 @@ print("# Server Config sent!")
 #------------------------------------------------------------------------
 # Set DB count reset schedule
 #------------------------------------------------------------------------
-schedule.every().day.at("24:59").do(Reset_DB_Count)
+schedule.every().day.at("23:59").do(Reset_DB_Count)
 
 #------------------------------------------------------------------------
 # Start Main Program Loop
@@ -350,12 +352,15 @@ try:
         print(db_contents)
         # END TESTING AREA
         
+        # Sleep to allow server time to process
+        time.sleep(2)
+
         # Send Database to LED board
         Send_DB(serverIP, port)
         
         # Sleep
         if rotate.lower() == 'y':
-            time.sleep(rotateTime)
+            time.sleep(sleepTime)
         elif rotate.lower() == 'n':
             time.sleep(600)
 
