@@ -147,4 +147,6 @@ try:
 except KeyboardInterrupt:
     pixels.fill((0, 0, 0))
     pixels.show()
+    os.remove("health.db")
+    os.remove("serverconfig.conf")
     
